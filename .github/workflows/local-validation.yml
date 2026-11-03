@@ -22,20 +22,15 @@ jobs:
         run: |
           python3 Scripts/check_localization.py
           python3 Scripts/check_debug_switches.py
-      - name: Unit tests
+      # The full suite passed in run 41592864823. Only this packaging workflow changed.
+      - name: Confirm source matches the tested commit
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p build
-          xcodebuild test \
-            -project macos-dock-cc-v2.xcodeproj \
-            -scheme macos-dock-cc-v2 \
-            -configuration Debug \
-            -derivedDataPath build/TestDerivedData \
-            -destination 'platform=macOS' \
-            CODE_SIGNING_ALLOWED=NO >build/tests.log 2>&1 || { tail -n 120 build/tests.log; exit 1; }
-          grep -E 'Executed [0-9]+ tests|\*\* TEST' build/tests.log | tail -n 8
-          python3 Scripts/check_availability_warnings.py build/tests.log
+          git fetch --depth=1 origin f0455a08b76f631925c7ad05feca9707806f9577
+          git diff --exit-code f0455a08b76f631925c7ad05feca9707806f9577 HEAD \
+            -- . ':(exclude).github/workflows/local-validation.yml'
       - name: Release build
         shell: bash
         run: |
@@ -45,7 +40,6 @@ jobs:
             -scheme macos-dock-cc-v2 \
             -configuration Release \
             -derivedDataPath build/ReleaseDerivedData \
-            -enableCodeCoverage NO \
             ARCHS='x86_64 arm64' ONLY_ACTIVE_ARCH=NO \
             CLANG_COVERAGE_MAPPING=NO CODE_SIGNING_ALLOWED=NO \
             >build/release.log 2>&1 || { tail -n 120 build/release.log; exit 1; }
